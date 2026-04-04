@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -
 
+## [0.2.0] - 2026-04-04
+
+### Added
+
+- `init` now writes a default `reposweep.yml` with roots, ignore list, and max depth
+- Config search starts from the current working directory
+- Command execution and messaging flow is wired end-to-end
+
 ## [0.1.0] - 2026-04-04
 
 ### Added
@@ -31,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial commit
 
-[0.1.0]: https://gitlab.com/neo-bend-reality/reposweep/-/compare/v0.0.2...HEAD/
-[0.0.2]: https://gitlab.com/neo-bend-reality/reposweep/-/compare/v0.0.1...v0.0.2/
-[0.0.1]: https://gitlab.com/neo-bend-reality/reposweep/-/commit/1a7f2bafe12aece7a7f528d21b4cf519fec6a410/
+[0.2.0]: https://gitlab.com/neo-bend-reality/reposweep/-/commit/<commit-hash-here>
+[0.1.0]: https://gitlab.com/neo-bend-reality/reposweep/-/commit/<commit-hash-here>
+[0.0.2]: https://gitlab.com/neo-bend-reality/reposweep/-/commit/<commit-hash-here>
+[0.0.1]: https://gitlab.com/neo-bend-reality/reposweep/-/commit/<commit-hash-here>

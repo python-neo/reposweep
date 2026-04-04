@@ -2,6 +2,7 @@ from pathlib import Path
 from argparse import ArgumentParser, REMAINDER
 import sys
 from typing import Optional
+from yaml import safe_dump
 
 MARKER_FILE = "reposweep.yml"
 
@@ -13,12 +14,27 @@ class Commands :
         self.project_root : Path | None = None
 
     def init (self) -> str | None :
-        ...
+        root = require_project_root (exit = False)
+        if root is not None :
+            sys.exit (f"Config file 'reposweep.yml' already exists in {root}")
+        data = {
+            "roots" : ["."],
+            "ignore" : [
+                ".git", "node_modules", ".venv", "__pycache__", ".pytest_cache",
+                ".mypy_cache", ".ruff_cache", ".tox", "venv", "dist",
+                "build", ".eggs", ".idea"
+                ],
+            "max_depth" : 4}
+        
+        with open ("reposweep.yml", "w", encoding = "utf-8") as f :
+            safe_dump (data, f, indent = 2, sort_keys = False)
+        sys.exit ("Initialized reposweep.yml")
 
-def require_project_root () -> Path :
-    current = Path.cwd ().resolve ()
-    root = next ((p for p in [current, *current.parents] if (p / "reposweep.yml").exists ()), None)
-    if root is None : 
+def require_project_root (exit : bool = True) -> Optional [Path] :
+    base_dir = Path.cwd ().resolve ()
+    root = next ((p for p in [base_dir, *base_dir.parents] if (p / MARKER_FILE).exists ()), None)
+    if root is None :
+        if not exit : return None
         sys.exit ("Not inside a RepoSweep project (run: 'reposweep init').")
     return root
 
@@ -67,6 +83,8 @@ def run_command (commands : Commands, command : str, subcmd : Optional [str], re
     else :
         if rest_exists :
             sys.exit (f"ERROR: '{command}' does not accept extra arguments.")
+
+    func (*args)
 
 if __name__ == "__main__" :
     argparser = ArgumentParser (add_help = False)
