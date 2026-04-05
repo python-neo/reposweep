@@ -2,21 +2,21 @@ from pathlib import Path
 from argparse import ArgumentParser, REMAINDER
 import sys
 from typing import Optional
-from yaml import safe_dump
+from yaml import safe_dump, safe_load
 
 MARKER_FILE = "reposweep.yml"
 
 class Commands :
     def __init__ (self) -> None :
         self.commands = {
-            "init" : {"func" : self.init, "subcmd" : False, "rest" : False}
+            "init" : {"func" : self.init, "subcmd" : False, "rest" : False},
+            "scan" : {"func" : self.scan, "subcmd" : False, "rest" : False}
         }
-        self.project_root : Path | None = None
+        self.project_root : Path | None = require_project_root ()
 
     def init (self) -> str | None :
-        root = require_project_root (exit = False)
-        if root is not None :
-            sys.exit (f"Config file 'reposweep.yml' already exists in {root}")
+        if self.project_root is not None :
+            sys.exit (f"Config file 'reposweep.yml' already exists in {self.project_root}.")
         data = {
             "roots" : ["."],
             "ignore" : [
@@ -30,13 +30,65 @@ class Commands :
             safe_dump (data, f, indent = 2, sort_keys = False)
         sys.exit ("Initialized reposweep.yml")
 
-def require_project_root (exit : bool = True) -> Optional [Path] :
+    def scan (self) -> None :
+        if self.project_root is None :
+            sys.exit ("Not inside a RepoSweep project (run: 'reposweep init').")
+        config_path = self.project_root / MARKER_FILE
+        with open (config_path, "r") as f :
+            data = safe_load (f) or {}
+
+        roots = data.get ("roots", ["."])
+        if isinstance (roots, str) :
+            roots = [roots]
+        ignore = set (data.get ("ignore", []))
+
+        base_dirs : list [Path] = []
+        for item in roots :
+            if str (item) == "." :
+                p = self.project_root
+            else :
+                p = Path (item).resolve ()
+            if p.exists () :
+                base_dirs.append (p)
+            else :
+                print (f"WARNING: root path not found: {p}")
+
+        found : list [Path] = []
+        for base in base_dirs :
+            stack : list [tuple [Path, int]] = [(base, 0)]
+            while stack :
+                current, depth = stack.pop ()
+                if current.name in ignore :
+                    continue
+
+                if (current / ".git").exists () :
+                    found.append (current)
+                    continue
+                if depth >= int (data.get ("max_depth", 4)) :
+                    continue
+
+                try :
+                    children = [p for p in current.iterdir () if p.is_dir ()]
+                except OSError :
+                    continue
+
+                for child in sorted (children, key = lambda p: p.name) :
+                    if child.name in ignore :
+                        continue
+                    stack.append ((child, depth + 1))
+
+        if not found :
+            print ("No repos found.")
+        for repo in sorted (set (found)) :
+            print (repo)
+
+
+def require_project_root () -> Optional [Path] :
     base_dir = Path.cwd ().resolve ()
-    root = next ((p for p in [base_dir, *base_dir.parents] if (p / MARKER_FILE).exists ()), None)
-    if root is None :
-        if not exit : return None
-        sys.exit ("Not inside a RepoSweep project (run: 'reposweep init').")
-    return root
+    if exit :
+        return next ((p for p in [base_dir, *base_dir.parents] if (p / MARKER_FILE).exists ()), None)
+    return next ((p for p in [base_dir, *base_dir.parents] if (p / MARKER_FILE).exists ()), None)
+
 
 def parse_tokens (tokens : list [str]) -> tuple :
     if not tokens :
